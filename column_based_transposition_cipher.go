@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"hash/fnv"
 	"math"
 	"math/rand"
+	"os"
+	"strings"
 )
 
 type dimensions struct {
@@ -12,7 +15,6 @@ type dimensions struct {
 }
 type myCipher struct {
 	plainText, cipherText, currentText string
-	cipherTextArr                      []string
 	cipherTextIdx                      []int
 	plainTextMatrix                    [][]string
 	cipherTextMatrix                   [][]string
@@ -21,21 +23,22 @@ type myCipher struct {
 
 func (c *myCipher) encrypt(key string) {
 	c.hashKey(key)
-	for i := 0; i < c.d.row; i++ {
-		for j := 0; j < len(c.cipherTextIdx); j++ {
-			c.cipherTextMatrix[i][j] = c.plainTextMatrix[i][c.cipherTextIdx[j]]
-			c.cipherText += c.cipherTextMatrix[i][j]
+	c.cipherText = ""
+	for i := 0; i < c.d.col; i++ {
+		for j := 0; j < c.d.row; j++ {
+			c.cipherTextMatrix[j][i] = c.plainTextMatrix[j][c.cipherTextIdx[i]]
+			c.cipherText += c.cipherTextMatrix[j][i]
 		}
-		c.cipherText += " "
 	}
 }
 
 func (c *myCipher) decrypt(key string) {
 	c.hashKey(key)
-	for i := 0; i < len(c.cipherTextIdx); i++ {
+	c.plainText = ""
+	for i := 0; i < c.d.col; i++ {
 		for j := 0; j < c.d.row; j++ {
-			c.cipherTextMatrix[i][j] = c.plainTextMatrix[i][c.cipherTextIdx[j]]
-			c.cipherText += c.plainTextMatrix[i][j]
+			c.plainTextMatrix[j][i] = c.cipherTextMatrix[j][c.cipherTextIdx[i]]
+			c.plainText += c.plainTextMatrix[j][i]
 		}
 	}
 }
@@ -53,22 +56,26 @@ func (c *myCipher) createMatrix(s string) {
 	l := 0
 	for i := 0; i < c.d.row; i++ {
 		for j := 0; j < c.d.col; j++ {
-			if c.d.length > l {
+			if l < c.d.length {
 				c.plainTextMatrix[i][j] = string(s[l])
 			} else {
-				c.plainTextMatrix[i][j] = "\\"
+				c.plainTextMatrix[i][j] = "*"
 			}
 			l++
 		}
 	}
-	c.showMatrix()
+	c.showMatrix(true)
 }
 
-func (c *myCipher) showMatrix() {
+func (c *myCipher) showMatrix(plain bool) {
 	fmt.Println()
 	for i := 0; i < c.d.row; i++ {
 		for j := 0; j < c.d.col; j++ {
-			fmt.Print(c.plainTextMatrix[i][j], " ")
+			if plain {
+				fmt.Print(c.plainTextMatrix[i][j], " ")
+			} else {
+				fmt.Print(c.cipherTextMatrix[i][j], " ")
+			}
 		}
 		fmt.Println()
 	}
@@ -81,7 +88,6 @@ func (c *myCipher) init(s string) {
 	c.d.row = int(math.Ceil(float64(c.d.length) / float64(c.d.col)))
 	c.plainTextMatrix = make([][]string, c.d.row)
 	c.cipherTextMatrix = make([][]string, c.d.row)
-	c.cipherTextArr = make([]string, c.d.col)
 	c.cipherTextIdx = make([]int, c.d.col)
 
 	for x := range c.plainTextMatrix {
@@ -91,7 +97,8 @@ func (c *myCipher) init(s string) {
 }
 
 func (c *myCipher) showPlainText() {
-	fmt.Println("Plain Text: ", c.plainText)
+	temp := strings.Replace(c.plainText, "*", "", -1)
+	fmt.Println("Plain Text: ", temp)
 	fmt.Println()
 }
 
@@ -117,6 +124,8 @@ func main() {
 	var key string
 	fmt.Println("Select action: ")
 
+	in := bufio.NewReader(os.Stdin)
+
 	var userInput int
 	for {
 		options()
@@ -124,29 +133,39 @@ func main() {
 		fmt.Scanf("%d", &userInput)
 
 		if userInput == 1 {
-			fmt.Println("Enter text to encrypt: ")
-			fmt.Scanln(&test.plainText)
+			fmt.Print("Enter text to encrypt: ")
+			line, _, _ := in.ReadLine()
+			test.plainText = string(line)
 			test.createMatrix(test.plainText)
-			fmt.Println("Enter encryption key: ")
+			fmt.Print("Enter encryption key: ")
 			fmt.Scanln(&key)
 			fmt.Println()
 			test.encrypt(key)
 			test.showCipherText()
 			continue
 		} else if userInput == 2 {
-			fmt.Println("Enter text to decrypt: ")
-			fmt.Scanln(&test.cipherText)
-			test.createMatrix(test.cipherText)
-			fmt.Println("Enter key: ")
+			fmt.Print("Enter text to decrypt: ")
+			line, _, _ := in.ReadLine()
+			test.cipherText = string(line)
+			//test.createMatrix(test.cipherText)
+			fmt.Print("Enter key: ")
 			fmt.Scanln(&key)
 			fmt.Println()
 			test.encrypt(key)
-			test.showCipherText()
+			test.showPlainText()
 			continue
 		} else if userInput == 3 {
-
+			if test.plainText != "" {
+				test.showMatrix(true)
+			} else {
+				fmt.Println("ERROR: Plain text not provided")
+			}
 		} else if userInput == 4 {
-
+			if test.plainText != "" {
+				test.showMatrix(false)
+			} else {
+				fmt.Println("ERROR: Cipher text not provided")
+			}
 		} else if userInput == 5 {
 
 		} else if userInput == 6 {
