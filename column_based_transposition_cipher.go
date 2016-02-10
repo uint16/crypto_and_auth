@@ -167,7 +167,7 @@ func main() {
 				fmt.Println("ERROR: Cipher text not provided")
 			}
 		} else if userInput == 5 {
-
+			options()
 		} else if userInput == 6 {
 			break
 		} else {
